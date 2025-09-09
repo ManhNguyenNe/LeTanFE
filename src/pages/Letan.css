@@ -338,6 +338,8 @@
     align-items: center;
     gap: 0.5rem;
     transition: all 0.3s ease;
+    height: 48px;
+    white-space: nowrap;
 }
 
 .btn-search:hover {
@@ -385,21 +387,58 @@
 }
 
 .search-patient-section,
-.patient-form-section {
+.patient-form-section,
+.appointments-list {
     margin-bottom: 2rem;
 }
 
 .search-patient-section h2,
-.patient-form-section h2 {
+.patient-form-section h2,
+.appointments-list h2 {
     color: #2c3e50;
     margin-bottom: 1rem;
     font-size: 1.3rem;
+}
+
+.appointments-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.appointments-header h2 {
+    margin-bottom: 0;
+}
+
+.filter-info {
+    display: flex;
+    align-items: center;
+    background: #e8f4f8;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    border: 1px solid #bee5eb;
+}
+
+.filter-text {
+    color: #0c5460;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .search-form {
     display: flex;
     gap: 1rem;
     align-items: end;
+}
+
+.search-form .form-group {
+    margin-bottom: 0;
+    flex: 1;
 }
 
 .form-group {
@@ -422,6 +461,18 @@
     border-radius: 5px;
     font-size: 1rem;
     transition: border-color 0.3s ease;
+    height: 48px;
+    box-sizing: border-box;
+}
+
+.form-group input:disabled,
+.form-group select:disabled,
+.form-group textarea:disabled {
+    background-color: #f8f9fa;
+    color: #6c757d;
+    border-color: #e9ecef;
+    cursor: not-allowed;
+    opacity: 0.8;
 }
 
 .form-group input:focus,
@@ -448,8 +499,35 @@
 /* Search Result */
 .search-result {
     margin-top: 1rem;
+}
+
+.search-message {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
     padding: 1rem;
     border-radius: 8px;
+    font-weight: 500;
+}
+
+.search-message.success {
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+}
+
+.search-message.error {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+}
+
+.search-message i {
+    font-size: 1.2rem;
+}
+
+.search-message p {
+    margin: 0;
 }
 
 .patient-found {
@@ -581,9 +659,20 @@
     }
     
     .search-form {
-        flex-direction: column;
+        flex-direction: row;
+        flex-wrap: wrap;
     }
     
+    .search-form .form-group {
+        min-width: 200px;
+        flex: 1;
+    }
+    
+    .appointments-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
     .action-buttons {
         flex-direction: column;
     }
