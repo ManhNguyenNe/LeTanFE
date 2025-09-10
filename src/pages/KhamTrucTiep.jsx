@@ -20,6 +20,7 @@ const KhamTrucTiep = () => {
     const [showPatientModal, setShowPatientModal] = useState(false);
     const [selectedPatientForModal, setSelectedPatientForModal] = useState(null);
     const [modalMode, setModalMode] = useState(''); // 'edit' hoặc 'view'
+    const [isFormFilled, setIsFormFilled] = useState(false); // State để theo dõi form đã được điền
     
     // Thêm state cho danh sách đặt lịch online
     const [appointments, setAppointments] = useState([
@@ -158,6 +159,7 @@ const KhamTrucTiep = () => {
             diaChi: patient.diaChi,
             cccd: patient.cccd
         });
+        setIsFormFilled(true); // Đánh dấu form đã được điền
         alert('Đã điền thông tin bệnh nhân vào phiếu khám!');
     };
 
@@ -283,6 +285,7 @@ const KhamTrucTiep = () => {
         setSearchedPhone(null);
         setSearchResult(null);
         setFoundPatients([]);
+        setIsFormFilled(false); // Reset trạng thái form
     };
 
     const filteredAppointments = appointments.filter(apt => {
@@ -421,143 +424,6 @@ const KhamTrucTiep = () => {
                                 </table>
                             </div>
                         </div>
-
-                        {/* Form thông tin bệnh nhân */}
-                        <div className="patient-form-section">
-                            <h2>Phiếu khám bệnh</h2>
-                            <form onSubmit={handleSubmit} className="patient-form">
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label>Họ và tên *</label>
-                                        <input 
-                                            type="text" 
-                                            maxLength="100" 
-                                            placeholder="Nhập vào họ và tên" 
-                                            required
-                                            pattern="[A-Za-zÀ-ỹ\s'-]+"
-                                            title="Tên chỉ chứa chữ cái và khoảng trắng"
-                                            value={patientInfo.hoTen}
-                                            onChange={(e) => setPatientInfo({...patientInfo, hoTen: e.target.value})}
-                                        />
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Số điện thoại *</label>
-                                        <input 
-                                            type="tel" 
-                                            maxLength="10" 
-                                            placeholder="Nhập vào số điện thoại" 
-                                            required
-                                            pattern="0\d{9}"
-                                            title="Số điện thoại Việt Nam bắt đầu bằng 0, 10 chữ số"
-                                            value={patientInfo.soDienThoai}
-                                            onChange={(e) => setPatientInfo({...patientInfo, soDienThoai: e.target.value})}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label>Email</label>
-                                        <input 
-                                            type="email" 
-                                            maxLength="100" 
-                                            placeholder="Nhập vào email" 
-                                            value={patientInfo.email}
-                                            onChange={(e) => setPatientInfo({...patientInfo, email: e.target.value})}
-                                        />
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Ngày sinh *</label>
-                                        <input 
-                                            type="date" 
-                                            required
-                                            value={patientInfo.ngaySinh}
-                                            onChange={(e) => setPatientInfo({...patientInfo, ngaySinh: e.target.value})}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label>Giới tính *</label>
-                                        <select 
-                                            required
-                                            value={patientInfo.gioiTinh}
-                                            onChange={(e) => setPatientInfo({...patientInfo, gioiTinh: e.target.value})}
-                                        >
-                                            <option value="">Chọn giới tính</option>
-                                            <option value="Nam">Nam</option>
-                                            <option value="Nữ">Nữ</option>
-                                        </select>
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Địa chỉ *</label>
-                                        <input 
-                                            type="text" 
-                                            maxLength="200" 
-                                            placeholder="Nhập vào địa chỉ" 
-                                            required
-                                            pattern="[A-Za-z0-9À-ỹ\s.,'-/]+"
-                                            title="Địa chỉ chỉ chứa chữ, số, khoảng trắng và các ký tự ., - ' /"
-                                            value={patientInfo.diaChi}
-                                            onChange={(e) => setPatientInfo({...patientInfo, diaChi: e.target.value})}
-                                        />
-                                    </div>
-                                </div>
-                                
-                                <div className='form-row'>
-                                    <div className="form-group">
-                                        <label>Căn cước công dân *</label>
-                                        <input 
-                                            type="text" 
-                                            maxLength="12" 
-                                            pattern="\d{12}" 
-                                            placeholder="Nhập vào 12 số CCCD" 
-                                            required
-                                            value={patientInfo.cccd}
-                                            onChange={(e) => setPatientInfo({...patientInfo, cccd: e.target.value})}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className='form-row'>
-                                    <div className="form-group">
-                                        <label>Khoa *</label>
-                                        <select 
-                                            required
-                                        >
-                                            <option value="">Chọn khoa</option>
-                                        </select>
-                                    </div>
-                            
-                                    <div className="form-group">
-                                        <label>Bác sĩ phụ trách *</label>
-                                        <select 
-                                            required
-                                            value={selectedDoctor}
-                                            onChange={(e) => setSelectedDoctor(e.target.value)}
-                                        >
-                                            <option value="">Chọn bác sĩ</option>
-                                            {doctors.map(doctor => (
-                                                <option key={doctor.id} value={doctor.id}>
-                                                    {doctor.name} - {doctor.specialty}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div className="form-actions">
-                                    <button type="button" className="btn-cancel" onClick={handleCancelForm}>
-                                        Làm mới
-                                    </button>
-                                    <button type="submit" className="btn-submit">
-                                        <i className="fas fa-plus"></i>
-                                        In phiếu khám
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
                     </div>
 
                     {/* Right Column */}
@@ -632,8 +498,154 @@ const KhamTrucTiep = () => {
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    {/* Modal sửa/xem thông tin bệnh nhân */}
+                {/* Phiếu khám bệnh - Section cuối cùng */}
+                <div className="search-patient-section" style={{marginTop: '2rem'}}>
+                    <h2>Phiếu khám bệnh</h2>
+                    <form onSubmit={handleSubmit} className="patient-form">
+                        <div className="form-row">
+                            <div className="form-group">
+                                <label>Họ và tên *</label>
+                                <input 
+                                    type="text" 
+                                    maxLength="100" 
+                                    placeholder="Nhập vào họ và tên" 
+                                    required
+                                    pattern="[A-Za-zÀ-ỹ\s'-]+"
+                                    title="Tên chỉ chứa chữ cái và khoảng trắng"
+                                    value={patientInfo.hoTen}
+                                    onChange={(e) => setPatientInfo({...patientInfo, hoTen: e.target.value})}
+                                    disabled={isFormFilled}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Số điện thoại *</label>
+                                <input 
+                                    type="tel" 
+                                    maxLength="10" 
+                                    placeholder="Nhập vào số điện thoại" 
+                                    required
+                                    pattern="0\d{9}"
+                                    title="Số điện thoại Việt Nam bắt đầu bằng 0, 10 chữ số"
+                                    value={patientInfo.soDienThoai}
+                                    onChange={(e) => setPatientInfo({...patientInfo, soDienThoai: e.target.value})}
+                                    disabled={isFormFilled}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="form-row">
+                            <div className="form-group">
+                                <label>Email</label>
+                                <input 
+                                    type="email" 
+                                    maxLength="100" 
+                                    placeholder="Nhập vào email" 
+                                    value={patientInfo.email}
+                                    onChange={(e) => setPatientInfo({...patientInfo, email: e.target.value})}
+                                    disabled={isFormFilled}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Ngày sinh *</label>
+                                <input 
+                                    type="date" 
+                                    required
+                                    value={patientInfo.ngaySinh}
+                                    onChange={(e) => setPatientInfo({...patientInfo, ngaySinh: e.target.value})}
+                                    disabled={isFormFilled}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="form-row">
+                            <div className="form-group">
+                                <label>Giới tính *</label>
+                                <select 
+                                    required
+                                    value={patientInfo.gioiTinh}
+                                    onChange={(e) => setPatientInfo({...patientInfo, gioiTinh: e.target.value})}
+                                    disabled={isFormFilled}
+                                >
+                                    <option value="">Chọn giới tính</option>
+                                    <option value="Nam">Nam</option>
+                                    <option value="Nữ">Nữ</option>
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Địa chỉ *</label>
+                                <input 
+                                    type="text" 
+                                    maxLength="200" 
+                                    placeholder="Nhập vào địa chỉ" 
+                                    required
+                                    pattern="[A-Za-z0-9À-ỹ\s.,'-/]+"
+                                    title="Địa chỉ chỉ chứa chữ, số, khoảng trắng và các ký tự ., - ' /"
+                                    value={patientInfo.diaChi}
+                                    onChange={(e) => setPatientInfo({...patientInfo, diaChi: e.target.value})}
+                                    disabled={isFormFilled}
+                                />
+                            </div>
+                        </div>
+                        
+                        <div className='form-row'>
+                            <div className="form-group">
+                                <label>Căn cước công dân *</label>
+                                <input 
+                                    type="text" 
+                                    maxLength="12" 
+                                    pattern="\d{12}" 
+                                    placeholder="Nhập vào 12 số CCCD" 
+                                    required
+                                    value={patientInfo.cccd}
+                                    onChange={(e) => setPatientInfo({...patientInfo, cccd: e.target.value})}
+                                    disabled={isFormFilled}
+                                />
+                            </div>
+                        </div>
+
+                        <div className='form-row'>
+                            <div className="form-group">
+                                <label>Khoa *</label>
+                                <select 
+                                    required
+                                >
+                                    <option value="">Chọn khoa</option>
+                                </select>
+                            </div>
+                    
+                            <div className="form-group">
+                                <label>Bác sĩ phụ trách *</label>
+                                <select 
+                                    required
+                                    value={selectedDoctor}
+                                    onChange={(e) => setSelectedDoctor(e.target.value)}
+                                >
+                                    <option value="">Chọn bác sĩ</option>
+                                    {doctors.map(doctor => (
+                                        <option key={doctor.id} value={doctor.id}>
+                                            {doctor.name} - {doctor.specialty}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="form-actions">
+                            <button type="button" className="btn-cancel" onClick={handleCancelForm}>
+                                Làm mới
+                            </button>
+                            <button type="submit" className="btn-submit">
+                                <i className="fas fa-plus"></i>
+                                In phiếu khám
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            {/* Modal sửa/xem thông tin bệnh nhân */}
                     {showPatientModal && selectedPatientForModal && (
                         <div className="modal-overlay">
                             <div className="modal patient-modal">
@@ -849,8 +861,6 @@ const KhamTrucTiep = () => {
                             </div>
                         </div>
                     )}
-                </div>
-            </div>
         </div>
     );
 };
