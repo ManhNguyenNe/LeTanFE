@@ -14,7 +14,7 @@ const KhamTrucTiep = () => {
     });
     const [selectedDoctor, setSelectedDoctor] = useState('');
     const [searchResult, setSearchResult] = useState(null);
-    const [searchedPhone, setSearchedPhone] = useState(null); // Lưu số điện thoại đã tìm kiếm thành công
+    const [searchedPhone, setSearchedPhone] = useState(null);
     
     // Thêm state cho danh sách đặt lịch online
     const [appointments, setAppointments] = useState([
@@ -71,13 +71,11 @@ const KhamTrucTiep = () => {
     ];
 
     const handleSearchPatient = () => {
-        // Kiểm tra xem có nhập số điện thoại không
         if (!patientInfo.soDienThoai || patientInfo.soDienThoai.trim() === '') {
             setSearchResult({ found: false, message: 'Vui lòng nhập số điện thoại để tìm kiếm.' });
             return;
         }
 
-        // Giả lập tìm kiếm bệnh nhân - kiểm tra số điện thoại cụ thể
         const mockPatients = {
             '0123456789': {
                 id: 1,
@@ -102,7 +100,6 @@ const KhamTrucTiep = () => {
         const foundPatient = mockPatients[patientInfo.soDienThoai];
         
         if (foundPatient) {
-            // Điền thông tin vào form
             setPatientInfo({
                 hoTen: foundPatient.hoTen,
                 soDienThoai: foundPatient.soDienThoai,
@@ -112,16 +109,15 @@ const KhamTrucTiep = () => {
                 diaChi: foundPatient.diaChi
             });
             setIsNewPatient(false);
-            setSearchedPhone(foundPatient.soDienThoai); // Lưu số điện thoại đã tìm kiếm
+            setSearchedPhone(foundPatient.soDienThoai);
             setSearchResult({ found: true, message: `Đã tìm thấy thông tin bệnh nhân ${foundPatient.soDienThoai}` });
         } else {
             setIsNewPatient(true);
-            setSearchedPhone(null); // Reset số điện thoại đã tìm kiếm
+            setSearchedPhone(null);
             setSearchResult({ found: false, message: 'Không tìm thấy bệnh nhân. Vui lòng nhập thông tin mới.' });
         }
     };
 
-    // Thêm các hàm xử lý cho danh sách đặt lịch online
     const handleConfirm = (appointment) => {
         setSelectedAppointment(appointment);
         setShowConfirmModal(true);
@@ -152,15 +148,7 @@ const KhamTrucTiep = () => {
         alert('Đã hủy lịch hẹn!');
     };
 
-    // Hàm xóa bộ lọc để hiển thị tất cả lịch hẹn
-    const clearFilter = () => {
-        setSearchedPhone(null);
-        setSearchResult(null);
-    };
-
-    // Hàm xử lý nút Hủy form
     const handleCancelForm = () => {
-        // Reset form
         setPatientInfo({
             hoTen: '',
             soDienThoai: '',
@@ -171,28 +159,19 @@ const KhamTrucTiep = () => {
         });
         setSelectedDoctor('');
         setIsNewPatient(false);
-        
-        // Xóa bộ lọc và kết quả tìm kiếm
         setSearchedPhone(null);
         setSearchResult(null);
     };
 
     const filteredAppointments = appointments.filter(apt => {
-        // Lọc bỏ những lịch hẹn đã hủy
-        if (apt.trangThai === 'Đã hủy') return false;
-        
-        // Nếu đã tìm kiếm thành công một bệnh nhân, chỉ hiển thị lịch hẹn của bệnh nhân đó
         if (searchedPhone) {
             return apt.soDienThoai === searchedPhone;
         }
-        
-        // Nếu chưa tìm kiếm, hiển thị tất cả
         return true;
     });
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        // Xử lý tạo phiếu khám
         alert('Đã in phiếu khám thành công!');
     };
 
@@ -201,10 +180,24 @@ const KhamTrucTiep = () => {
             {/* Header */}
             <div className="letan-header">
                 <div className="letan-header-content">
-                    <h1>Khám trực tiếp</h1>
-                    <Link to="/letan" className="back-btn">
-                        <i className="fas fa-arrow-left"></i>
-                        Quay lại
+                    <h1>Hệ thống quản lý lễ tân</h1>
+                    <div className="letan-user-info">
+                        <span>Xin chào, Lễ tân</span>
+                        <button className="logout-btn">Đăng xuất</button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Navigation */}
+            <div className="letan-nav">
+                <div className="letan-nav-content">
+                    <button className="nav-btn active">
+                        <i className="fas fa-user-plus"></i>
+                        Tạo phiếu khám
+                    </button>
+                    <Link to="/letan/xac-nhan-dat-lich" className="nav-btn">
+                        <i className="fas fa-calendar-check"></i>
+                        Xác nhận đặt lịch
                     </Link>
                 </div>
             </div>
@@ -267,7 +260,10 @@ const KhamTrucTiep = () => {
                                             <td>{appointment.khungGio}</td>
                                             <td>{appointment.ngayDat}</td>
                                             <td>
-                                                <span className={`status-badge ${appointment.trangThai === 'Đã xác nhận' ? 'confirmed' : 'pending'}`}>
+                                                <span className={`status-badge ${
+                                                    appointment.trangThai === 'Đã xác nhận' ? 'confirmed' : 
+                                                    appointment.trangThai === 'Đã hủy' ? 'cancelled' : 'pending'
+                                                }`}>
                                                     {appointment.trangThai}
                                                 </span>
                                             </td>
@@ -289,12 +285,6 @@ const KhamTrucTiep = () => {
                                                             </button>
                                                         </>
                                                     )}
-                                                    <button 
-                                                        className="btn-detail"
-                                                        onClick={() => setSelectedAppointment(appointment)}
-                                                    >
-                                                        Chi tiết
-                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -306,16 +296,14 @@ const KhamTrucTiep = () => {
 
                     {/* Form thông tin bệnh nhân */}
                     <div className="patient-form-section">
-                        <h2>Thông tin bệnh nhân</h2>
+                        <h2>Phiếm khám bệnh</h2>
                         <form onSubmit={handleSubmit} className="patient-form">
                             <div className="form-row">
                                 <div className="form-group">
                                     <label>Họ và tên *</label>
                                     <input 
                                         type="text" 
-                                        id="name" 
-                                        name="name" 
-                                        maxlength="100" 
+                                        maxLength="100" 
                                         placeholder="Nhập vào họ và tên" 
                                         required
                                         pattern="[A-Za-zÀ-ỹ\s'-]+"
@@ -329,9 +317,7 @@ const KhamTrucTiep = () => {
                                     <label>Số điện thoại *</label>
                                     <input 
                                         type="tel" 
-                                        id="phone" 
-                                        name="phone" 
-                                        maxlength="10" 
+                                        maxLength="10" 
                                         placeholder="Nhập vào số điện thoại" 
                                         required
                                         pattern="0\d{9}"
@@ -348,9 +334,7 @@ const KhamTrucTiep = () => {
                                     <label>Email</label>
                                     <input 
                                         type="email" 
-                                        id="email" 
-                                        name="email" 
-                                        maxlength="100" 
+                                        maxLength="100" 
                                         placeholder="Nhập vào email" 
                                         value={patientInfo.email}
                                         onChange={(e) => setPatientInfo({...patientInfo, email: e.target.value})}
@@ -387,9 +371,7 @@ const KhamTrucTiep = () => {
                                     <label>Địa chỉ *</label>
                                     <input 
                                         type="text" 
-                                        id="address" 
-                                        name="address" 
-                                        maxlength="200" 
+                                        maxLength="200" 
                                         placeholder="Nhập vào địa chỉ" 
                                         required
                                         pattern="[A-Za-z0-9À-ỹ\s.,'-/]+"
@@ -406,14 +388,10 @@ const KhamTrucTiep = () => {
                                     <label>Căn cước công dân *</label>
                                     <input 
                                         type="text" 
-                                        id="cccd" 
-                                        name="cccd" 
-                                        maxlength="12" 
+                                        maxLength="12" 
                                         pattern="\d{12}" 
                                         placeholder="Nhập vào 12 số CCCD" 
                                         required
-                                        value={patientInfo.hoTen}
-                                        onChange={(e) => setPatientInfo({...patientInfo, hoTen: e.target.value})}
                                         disabled={searchedPhone !== null}
                                     />
                                 </div>
@@ -424,16 +402,8 @@ const KhamTrucTiep = () => {
                                     <label>Khoa *</label>
                                     <select 
                                         required
-                                        value={selectedDoctor}
-                                        onChange={(e) => setSelectedDoctor(e.target.value)}
-                                        disabled={searchedPhone !== null}
                                     >
                                         <option value="">Chọn khoa</option>
-                                        {/* {doctors.map(doctor => (
-                                            <option key={doctor.id} value={doctor.id}>
-                                                {doctor.name} - {doctor.specialty}
-                                            </option>
-                                        ))} */}
                                     </select>
                                 </div>
                         
@@ -443,7 +413,6 @@ const KhamTrucTiep = () => {
                                         required
                                         value={selectedDoctor}
                                         onChange={(e) => setSelectedDoctor(e.target.value)}
-                                        disabled={searchedPhone !== null}
                                     >
                                         <option value="">Chọn bác sĩ</option>
                                         {doctors.map(doctor => (
