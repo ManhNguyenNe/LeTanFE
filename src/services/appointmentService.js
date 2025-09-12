@@ -46,14 +46,14 @@ const appointmentService = {
   /**
    * Xác nhận lịch khám (cho receptionist)
    * @param {number} appointmentId - ID lịch khám
-   * @param {string} status - Trạng thái mới
+   * @param {string} status - Trạng thái mới (enum: CHO_XAC_NHAN, DA_XAC_NHAN, KHONG_DEN)
    * @returns {Promise} Response từ API
    */
   confirmAppointment: async (appointmentId, status) => {
     try {
       const response = await apiClient.post('/api/receptionists/confirm', {
         id: appointmentId,
-        status: status
+        status: status // Sử dụng enum string như backend mong đợi
       });
       return response.data;
     } catch (error) {

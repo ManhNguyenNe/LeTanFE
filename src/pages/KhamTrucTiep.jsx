@@ -217,13 +217,13 @@ const KhamTrucTiep = () => {
 
     const confirmAppointment = async () => {
         try {
-            // Gọi API để xác nhận lịch khám
-            await appointmentService.confirmAppointment(selectedAppointment.id, 'Đã xác nhận');
+            // Gọi API để xác nhận lịch khám - sử dụng enum status
+            await appointmentService.confirmAppointment(selectedAppointment.id, 'DA_XAC_NHAN');
             
             // Cập nhật danh sách API appointments
             setApiAppointments(apiAppointments.map(apt => 
                 apt.id === selectedAppointment.id 
-                    ? { ...apt, trangThai: 'Đã xác nhận' }
+                    ? { ...apt, status: 'DA_XAC_NHAN' }
                     : apt
             ));
 
@@ -240,13 +240,13 @@ const KhamTrucTiep = () => {
 
     const cancelAppointment = async () => {
         try {
-            // Gọi API để hủy lịch khám
-            await appointmentService.confirmAppointment(selectedAppointment.id, 'Đã hủy');
+            // Gọi API để hủy lịch khám - sử dụng enum status  
+            await appointmentService.confirmAppointment(selectedAppointment.id, 'KHONG_DEN');
             
             // Cập nhật danh sách API appointments
             setApiAppointments(apiAppointments.map(apt => 
                 apt.id === selectedAppointment.id 
-                    ? { ...apt, trangThai: 'Đã hủy' }
+                    ? { ...apt, status: 'KHONG_DEN' }
                     : apt
             ));
 
@@ -398,7 +398,7 @@ const KhamTrucTiep = () => {
                                             <th>Số điện thoại</th>
                                             <th>Bác sĩ</th>
                                             <th>Khung giờ</th>
-                                            <th>Ngày đặt</th>
+                                            <th>Ngày khám</th>
                                             <th>Trạng thái</th>
                                             <th>Thao tác</th>
                                         </tr>
@@ -412,43 +412,84 @@ const KhamTrucTiep = () => {
                                                 </td>
                                             </tr>
                                         ) : filteredAppointments.length > 0 ? (
-                                            filteredAppointments.map(appointment => (
-                                            <tr key={appointment.id}>
-                                                <td>{appointment.fullName || appointment.hoTen || appointment.patientName || 'N/A'}</td>
-                                                <td>{appointment.phone || appointment.soDienThoai || 'N/A'}</td>
-                                                <td>{appointment.doctorName || appointment.bacSiMongMuon || 'Chưa phân công'}</td>
-                                                <td>{appointment.timeSlot || appointment.khungGio || 'N/A'}</td>
-                                                <td>{appointment.appointmentDate || appointment.ngayDat || appointment.registrationDate || 'N/A'}</td>
-                                                <td>
-                                                    <span className={`status-badge ${
-                                                        appointment.trangThai === 'Đã xác nhận' ? 'confirmed' : 
-                                                        appointment.trangThai === 'Đã hủy' ? 'cancelled' : 'pending'
-                                                    }`}>
-                                                        {appointment.trangThai}
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <div className="action-buttons">
-                                                        {appointment.trangThai === 'Chờ xác nhận' && (
-                                                            <>
-                                                                <button 
-                                                                    className="btn-confirm"
-                                                                    onClick={() => handleConfirm(appointment)}
-                                                                >
-                                                                    Xác nhận
-                                                                </button>
-                                                                <button 
-                                                                    className="btn-cancel"
-                                                                    onClick={() => handleCancel(appointment)}
-                                                                >
-                                                                    Hủy
-                                                                </button>
-                                                            </>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))
+                                            filteredAppointments.map(appointment => {
+                                                // Chuyển đổi status từ backend sang tiếng Việt
+                                                const getVietnameseStatus = (status) => {
+                                                    switch(status) {
+                                                        case 'CHO_XAC_NHAN':
+                                                            return 'Chờ xác nhận';
+                                                        case 'DA_XAC_NHAN':
+                                                            return 'Đã xác nhận';
+                                                        case 'KHONG_DEN':
+                                                            return 'Đã hủy';
+                                                        default:
+                                                            return status || 'Chờ xác nhận';
+                                                    }
+                                                };
+
+                                                // Format thời gian hiển thị
+                                                const formatTime = (time) => {
+                                                    if (!time) return 'N/A';
+                                                    // Nếu time là string dạng "HH:mm:ss" hoặc "HH:mm"
+                                                    if (typeof time === 'string') {
+                                                        return time.substring(0, 5); // Lấy HH:mm
+                                                    }
+                                                    return time.toString();
+                                                };
+
+                                                // Format ngày hiển thị
+                                                const formatDate = (date) => {
+                                                    if (!date) return 'N/A';
+                                                    // Nếu date là string dạng "YYYY-MM-DD"
+                                                    if (typeof date === 'string') {
+                                                        const parts = date.split('-');
+                                                        if (parts.length === 3) {
+                                                            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+                                                        }
+                                                    }
+                                                    return date.toString();
+                                                };
+
+                                                const vietnameseStatus = getVietnameseStatus(appointment.status);
+
+                                                return (
+                                                    <tr key={appointment.id}>
+                                                        <td>{appointment.fullName || 'N/A'}</td>
+                                                        <td>{appointment.phone || 'N/A'}</td>
+                                                        <td>{appointment.doctorResponse?.fullName || 'Chưa phân công'}</td>
+                                                        <td>{formatTime(appointment.time)}</td>
+                                                        <td>{formatDate(appointment.date)}</td>
+                                                        <td>
+                                                            <span className={`status-badge ${
+                                                                vietnameseStatus === 'Đã xác nhận' ? 'confirmed' : 
+                                                                vietnameseStatus === 'Đã hủy' ? 'cancelled' : 'pending'
+                                                            }`}>
+                                                                {vietnameseStatus}
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            <div className="action-buttons">
+                                                                {vietnameseStatus === 'Chờ xác nhận' && (
+                                                                    <>
+                                                                        <button 
+                                                                            className="btn-confirm"
+                                                                            onClick={() => handleConfirm(appointment)}
+                                                                        >
+                                                                            Xác nhận
+                                                                        </button>
+                                                                        <button 
+                                                                            className="btn-cancel"
+                                                                            onClick={() => handleCancel(appointment)}
+                                                                        >
+                                                                            Hủy
+                                                                        </button>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })
                                         ) : (
                                             <tr>
                                                 <td colSpan="7" style={{ textAlign: 'center', color: '#6c757d', fontStyle: 'italic', padding: '2rem' }}>
@@ -844,14 +885,15 @@ const KhamTrucTiep = () => {
                                 </div>
                                 <div className="modal-body">
                                     <div className="appointment-details">
-                                        <p><strong>Họ tên:</strong> {selectedAppointment.hoTen}</p>
-                                        <p><strong>Số điện thoại:</strong> {selectedAppointment.soDienThoai}</p>
-                                        <p><strong>Email:</strong> {selectedAppointment.email}</p>
-                                        <p><strong>Ngày sinh:</strong> {selectedAppointment.ngaySinh}</p>
-                                        <p><strong>Giới tính:</strong> {selectedAppointment.gioiTinh}</p>
-                                        <p><strong>Bác sĩ:</strong> {selectedAppointment.bacSiMongMuon}</p>
-                                        <p><strong>Khung giờ:</strong> {selectedAppointment.khungGio}</p>
-                                        <p><strong>Ghi chú:</strong> {selectedAppointment.ghiChu}</p>
+                                        <p><strong>Họ tên:</strong> {selectedAppointment.fullName || 'N/A'}</p>
+                                        <p><strong>Số điện thoại:</strong> {selectedAppointment.phone || 'N/A'}</p>
+                                        <p><strong>Email:</strong> {selectedAppointment.email || 'N/A'}</p>
+                                        <p><strong>Ngày sinh:</strong> {selectedAppointment.birth || 'N/A'}</p>
+                                        <p><strong>Địa chỉ:</strong> {selectedAppointment.address || 'N/A'}</p>
+                                        <p><strong>Bác sĩ:</strong> {selectedAppointment.doctorResponse?.fullName || 'Chưa phân công'}</p>
+                                        <p><strong>Ngày khám:</strong> {selectedAppointment.date || 'N/A'}</p>
+                                        <p><strong>Giờ khám:</strong> {selectedAppointment.time ? selectedAppointment.time.substring(0, 5) : 'N/A'}</p>
+                                        <p><strong>Triệu chứng:</strong> {selectedAppointment.symptoms || 'Không có'}</p>
                                     </div>
                                 </div>
                                 <div className="modal-footer">
@@ -886,11 +928,7 @@ const KhamTrucTiep = () => {
                                     </button>
                                 </div>
                                 <div className="modal-body">
-                                    <p>Bạn có chắc chắn muốn hủy lịch hẹn của <strong>{selectedAppointment.hoTen}</strong>?</p>
-                                    <div className="form-group">
-                                        <label>Lý do hủy:</label>
-                                        <textarea placeholder="Nhập lý do hủy lịch hẹn..."></textarea>
-                                    </div>
+                                    <p>Bạn có chắc chắn muốn hủy lịch hẹn của <strong>{selectedAppointment.fullName}</strong>?</p>
                                 </div>
                                 <div className="modal-footer">
                                     <button 
