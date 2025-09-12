@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import './Letan.css';
+import appointmentService from '../services/appointmentService';
+import patientService from '../services/patientService';
+// import doctorService from '../services/doctorService'; // Uncomment khi backend có API doctors
 
 const KhamTrucTiep = () => {
     const [isNewPatient, setIsNewPatient] = useState(false);
@@ -22,145 +25,107 @@ const KhamTrucTiep = () => {
     const [modalMode, setModalMode] = useState(''); // 'edit' hoặc 'view'
     const [isFormFilled, setIsFormFilled] = useState(false); // State để theo dõi form đã được điền
     
-    // Thêm state cho danh sách đặt lịch online
-    const [appointments, setAppointments] = useState([
-        {
-            id: 1,
-            hoTen: 'Nguyễn Văn A',
-            soDienThoai: '0123456789',
-            email: 'nguyenvana@email.com',
-            ngaySinh: '1990-01-01',
-            gioiTinh: 'Nam',
-            bacSiMongMuon: 'BS. Nguyễn Văn A',
-            khungGio: '08:00 - 08:30',
-            ngayDat: '2024-01-15',
-            trangThai: 'Chờ xác nhận',
-            ghiChu: 'Khám tổng quát'
-        },
-        {
-            id: 2,
-            hoTen: 'Trần Thị B',
-            soDienThoai: '0987654321',
-            email: 'tranthib@email.com',
-            ngaySinh: '1985-05-15',
-            gioiTinh: 'Nữ',
-            bacSiMongMuon: 'BS. Trần Thị B',
-            khungGio: '09:00 - 09:30',
-            ngayDat: '2024-01-15',
-            trangThai: 'Chờ xác nhận',
-            ghiChu: 'Khám phụ khoa'
-        },
-        {
-            id: 3,
-            hoTen: 'Lê Văn C',
-            soDienThoai: '0369852147',
-            email: 'levanc@email.com',
-            ngaySinh: '1992-12-20',
-            gioiTinh: 'Nam',
-            bacSiMongMuon: 'BS. Lê Văn C',
-            khungGio: '10:30 - 11:00',
-            ngayDat: '2024-01-15',
-            trangThai: 'Đã xác nhận',
-            ghiChu: 'Khám ngoại khoa'
-        }
-    ]);
+    // State để quản lý loading và lịch khám từ API
+    const [isLoadingPatients, setIsLoadingPatients] = useState(false);
+    const [isLoadingAppointments, setIsLoadingAppointments] = useState(false);
+    const [apiAppointments, setApiAppointments] = useState([]);
+    const [error, setError] = useState(null);
+    const [doctors, setDoctors] = useState([]); // Sẽ lấy từ API doctors sau
     
     const [selectedAppointment, setSelectedAppointment] = useState(null);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [showCancelModal, setShowCancelModal] = useState(false);
 
-    const doctors = [
-        { id: 1, name: 'BS. Nguyễn Văn A', specialty: 'Nội khoa' },
-        { id: 2, name: 'BS. Trần Thị B', specialty: 'Ngoại khoa' },
-        { id: 3, name: 'BS. Lê Văn C', specialty: 'Nhi khoa' },
-        { id: 4, name: 'BS. Phạm Thị D', specialty: 'Sản phụ khoa' }
-    ];
 
-    const handleSearchPatient = () => {
+
+    const handleSearchPatient = async () => {
         if (!patientInfo.soDienThoai || patientInfo.soDienThoai.trim() === '') {
             setSearchResult({ found: false, message: 'Vui lòng nhập số điện thoại để tìm kiếm.' });
             setFoundPatients([]);
+            setApiAppointments([]);
             return;
         }
 
-        // Mock data với nhiều bệnh nhân có thể dùng chung số điện thoại
-        const mockPatients = {
-            '0123456789': [
-                {
-                    id: 1,
-                    hoTen: 'Nguyễn Văn A',
-                    soDienThoai: '0123456789',
-                    email: 'nguyenvana@email.com',
-                    ngaySinh: '1990-01-01',
-                    gioiTinh: 'Nam',
-                    diaChi: '123 Đường ABC, Quận 1, TP.HCM',
-                    cccd: '123456789012'
-                },
-                {
-                    id: 2,
-                    hoTen: 'Nguyễn Thị B (Vợ)',
-                    soDienThoai: '0123456789',
-                    email: 'nguyenthib@email.com',
-                    ngaySinh: '1992-05-15',
-                    gioiTinh: 'Nữ',
-                    diaChi: '123 Đường ABC, Quận 1, TP.HCM',
-                    cccd: '123456789013'
-                },
-                {
-                    id: 3,
-                    hoTen: 'Nguyễn Văn C (Con)',
-                    soDienThoai: '0123456789',
-                    email: '',
-                    ngaySinh: '2015-08-20',
-                    gioiTinh: 'Nam',
-                    diaChi: '123 Đường ABC, Quận 1, TP.HCM',
-                    cccd: ''
-                }
-            ],
-            '0987654321': [
-                {
-                    id: 4,
-                    hoTen: 'Trần Thị D',
-                    soDienThoai: '0987654321',
-                    email: 'tranthid@email.com',
-                    ngaySinh: '1985-05-15',
-                    gioiTinh: 'Nữ',
-                    diaChi: '456 Đường XYZ, Quận 2, TP.HCM',
-                    cccd: '987654321098'
-                }
-            ]
-        };
+        setIsLoadingPatients(true);
+        setIsLoadingAppointments(true);
+        setError(null);
 
-        const foundPatientsData = mockPatients[patientInfo.soDienThoai];
-        
-        if (foundPatientsData && foundPatientsData.length > 0) {
-            setFoundPatients(foundPatientsData);
-            setIsNewPatient(false);
-            setSearchedPhone(patientInfo.soDienThoai);
-            setSearchResult({ 
-                found: true, 
-                message: `Tìm thấy ${foundPatientsData.length} hồ sơ bệnh nhân với số điện thoại ${patientInfo.soDienThoai}` 
-            });
-        } else {
+        try {
+            // Gọi API để tìm bệnh nhân theo số điện thoại
+            const [patientsResponse, appointmentsResponse] = await Promise.all([
+                patientService.getPatientsByPhone(patientInfo.soDienThoai.trim()),
+                appointmentService.getAppointmentsByPhone(patientInfo.soDienThoai.trim())
+            ]);
+
+            // Debug logs
+            console.log('🔍 Patients API Response:', patientsResponse);
+            console.log('📅 Appointments API Response:', appointmentsResponse);
+
+            // Xử lý dữ liệu bệnh nhân - giữ nguyên thông tin từ API
+            const foundPatientsData = (patientsResponse?.data || []).map(patient => ({
+                ...patient,
+                // Chỉ thêm số điện thoại search nếu patient không có số riêng
+                searchedPhone: patientInfo.soDienThoai.trim()
+            }));
+            
+            if (foundPatientsData.length > 0) {
+                setFoundPatients(foundPatientsData);
+                setIsNewPatient(false);
+                setSearchedPhone(patientInfo.soDienThoai);
+                setSearchResult({ 
+                    found: true, 
+                    message: `Tìm thấy ${foundPatientsData.length} hồ sơ bệnh nhân với số điện thoại ${patientInfo.soDienThoai}` 
+                });
+            } else {
+                setFoundPatients([]);
+                setIsNewPatient(true);
+                setSearchedPhone(null);
+                setSearchResult({ found: false, message: 'Không tìm thấy bệnh nhân. Vui lòng nhập thông tin mới.' });
+            }
+
+            // Xử lý dữ liệu lịch khám
+            const appointmentsData = appointmentsResponse?.data || [];
+            console.log('📅 Appointments data:', appointmentsData);
+            setApiAppointments(appointmentsData);
+
+        } catch (error) {
+            console.error('Error searching patient:', error);
+            setError('Có lỗi xảy ra khi tìm kiếm thông tin bệnh nhân. Vui lòng thử lại.');
             setFoundPatients([]);
+            setApiAppointments([]);
+            setSearchResult({ found: false, message: 'Có lỗi xảy ra khi tìm kiếm. Vui lòng thử lại.' });
             setIsNewPatient(true);
             setSearchedPhone(null);
-            setSearchResult({ found: false, message: 'Không tìm thấy bệnh nhân. Vui lòng nhập thông tin mới.' });
+        } finally {
+            setIsLoadingPatients(false);
+            setIsLoadingAppointments(false);
+        }
+    };
+
+    // Function để refresh lại danh sách lịch khám sau khi có thay đổi
+    const refreshAppointments = async () => {
+        if (searchedPhone) {
+            try {
+                const response = await appointmentService.getAppointmentsByPhone(searchedPhone);
+                setApiAppointments(response?.data || []);
+            } catch (error) {
+                console.error('Error refreshing appointments:', error);
+            }
         }
     };
 
     const handleFillPatientInfo = (patient) => {
         setPatientInfo({
-            hoTen: patient.hoTen,
-            soDienThoai: patient.soDienThoai,
-            email: patient.email,
-            ngaySinh: patient.ngaySinh,
-            gioiTinh: patient.gioiTinh,
-            diaChi: patient.diaChi,
-            cccd: patient.cccd
+            hoTen: patient.fullName || patient.hoTen,
+            soDienThoai: patient.searchedPhone || patient.phone || patient.soDienThoai, // Ưu tiên số đã search
+            email: patient.email || '',
+            ngaySinh: patient.birth || patient.ngaySinh,
+            gioiTinh: patient.gender || patient.gioiTinh,
+            diaChi: patient.address || patient.diaChi,
+            cccd: patient.cccd || ''
         });
         setIsFormFilled(true); // Đánh dấu form đã được điền
-        alert('Đã điền thông tin bệnh nhân vào phiếu khám!');
+        alert(`Đã điền thông tin bệnh nhân "${patient.fullName || patient.hoTen}" vào phiếu khám!`);
     };
 
     const handleEditPatient = (patient) => {
@@ -250,24 +215,50 @@ const KhamTrucTiep = () => {
         setShowCancelModal(true);
     };
 
-    const confirmAppointment = () => {
-        setAppointments(appointments.map(apt => 
-            apt.id === selectedAppointment.id 
-                ? { ...apt, trangThai: 'Đã xác nhận' }
-                : apt
-        ));
-        setShowConfirmModal(false);
-        alert('Đã xác nhận lịch hẹn thành công!');
+    const confirmAppointment = async () => {
+        try {
+            // Gọi API để xác nhận lịch khám
+            await appointmentService.confirmAppointment(selectedAppointment.id, 'Đã xác nhận');
+            
+            // Cập nhật danh sách API appointments
+            setApiAppointments(apiAppointments.map(apt => 
+                apt.id === selectedAppointment.id 
+                    ? { ...apt, trangThai: 'Đã xác nhận' }
+                    : apt
+            ));
+
+            setShowConfirmModal(false);
+            alert('Đã xác nhận lịch hẹn thành công!');
+            
+            // Refresh danh sách lịch khám
+            await refreshAppointments();
+        } catch (error) {
+            console.error('Error confirming appointment:', error);
+            alert('Có lỗi xảy ra khi xác nhận lịch hẹn. Vui lòng thử lại.');
+        }
     };
 
-    const cancelAppointment = () => {
-        setAppointments(appointments.map(apt => 
-            apt.id === selectedAppointment.id 
-                ? { ...apt, trangThai: 'Đã hủy' }
-                : apt
-        ));
-        setShowCancelModal(false);
-        alert('Đã hủy lịch hẹn!');
+    const cancelAppointment = async () => {
+        try {
+            // Gọi API để hủy lịch khám
+            await appointmentService.confirmAppointment(selectedAppointment.id, 'Đã hủy');
+            
+            // Cập nhật danh sách API appointments
+            setApiAppointments(apiAppointments.map(apt => 
+                apt.id === selectedAppointment.id 
+                    ? { ...apt, trangThai: 'Đã hủy' }
+                    : apt
+            ));
+
+            setShowCancelModal(false);
+            alert('Đã hủy lịch hẹn!');
+            
+            // Refresh danh sách lịch khám
+            await refreshAppointments();
+        } catch (error) {
+            console.error('Error canceling appointment:', error);
+            alert('Có lỗi xảy ra khi hủy lịch hẹn. Vui lòng thử lại.');
+        }
     };
 
     const handleCancelForm = () => {
@@ -288,9 +279,10 @@ const KhamTrucTiep = () => {
         setIsFormFilled(false); // Reset trạng thái form
     };
 
-    const filteredAppointments = appointments.filter(apt => {
+    // Chỉ sử dụng dữ liệu từ API
+    const filteredAppointments = apiAppointments.filter(apt => {
         if (searchedPhone) {
-            return apt.soDienThoai === searchedPhone;
+            return apt.soDienThoai === searchedPhone || apt.phone === searchedPhone;
         }
         return true;
     });
@@ -344,9 +336,22 @@ const KhamTrucTiep = () => {
                                         onChange={(e) => setPatientInfo({...patientInfo, soDienThoai: e.target.value})}
                                     />
                                 </div>
-                                <button className="btn-search" onClick={handleSearchPatient}>
-                                    <i className="fas fa-search"></i>
-                                    Tìm kiếm
+                                <button 
+                                    className="btn-search" 
+                                    onClick={handleSearchPatient}
+                                    disabled={isLoadingPatients || isLoadingAppointments}
+                                >
+                                    {isLoadingPatients || isLoadingAppointments ? (
+                                        <>
+                                            <i className="fas fa-spinner fa-spin"></i>
+                                            Đang tìm kiếm...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <i className="fas fa-search"></i>
+                                            Tìm kiếm
+                                        </>
+                                    )}
                                 </button>
                             </div>
                         </div>
@@ -358,6 +363,22 @@ const KhamTrucTiep = () => {
                         </div>
                     </div>
                 </div>
+
+                {/* Error Message */}
+                {error && (
+                    <div className="error-message" style={{
+                        backgroundColor: '#f8d7da',
+                        color: '#721c24',
+                        padding: '0.75rem 1.25rem',
+                        marginBottom: '1rem',
+                        border: '1px solid #f5c6cb',
+                        borderRadius: '0.375rem',
+                        fontSize: '0.875rem'
+                    }}>
+                        <i className="fas fa-exclamation-triangle" style={{marginRight: '0.5rem'}}></i>
+                        {error}
+                    </div>
+                )}
 
                 {/* Two Column Layout */}
                 <div className="kham-truc-tiep-content">
@@ -383,13 +404,21 @@ const KhamTrucTiep = () => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {filteredAppointments.map(appointment => (
+                                        {isLoadingAppointments ? (
+                                            <tr>
+                                                <td colSpan="7" style={{ textAlign: 'center', padding: '2rem' }}>
+                                                    <i className="fas fa-spinner fa-spin" style={{ marginRight: '0.5rem' }}></i>
+                                                    Đang tải danh sách lịch khám...
+                                                </td>
+                                            </tr>
+                                        ) : filteredAppointments.length > 0 ? (
+                                            filteredAppointments.map(appointment => (
                                             <tr key={appointment.id}>
-                                                <td>{appointment.hoTen}</td>
-                                                <td>{appointment.soDienThoai}</td>
-                                                <td>{appointment.bacSiMongMuon}</td>
-                                                <td>{appointment.khungGio}</td>
-                                                <td>{appointment.ngayDat}</td>
+                                                <td>{appointment.fullName || appointment.hoTen || appointment.patientName || 'N/A'}</td>
+                                                <td>{appointment.phone || appointment.soDienThoai || 'N/A'}</td>
+                                                <td>{appointment.doctorName || appointment.bacSiMongMuon || 'Chưa phân công'}</td>
+                                                <td>{appointment.timeSlot || appointment.khungGio || 'N/A'}</td>
+                                                <td>{appointment.appointmentDate || appointment.ngayDat || appointment.registrationDate || 'N/A'}</td>
                                                 <td>
                                                     <span className={`status-badge ${
                                                         appointment.trangThai === 'Đã xác nhận' ? 'confirmed' : 
@@ -419,7 +448,14 @@ const KhamTrucTiep = () => {
                                                     </div>
                                                 </td>
                                             </tr>
-                                        ))}
+                                        ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan="7" style={{ textAlign: 'center', color: '#6c757d', fontStyle: 'italic', padding: '2rem' }}>
+                                                    {searchedPhone ? 'Không tìm thấy lịch khám nào cho số điện thoại này' : 'Nhập số điện thoại để tìm kiếm lịch khám'}
+                                                </td>
+                                            </tr>
+                                        )}
                                     </tbody>
                                 </table>
                             </div>
@@ -455,7 +491,19 @@ const KhamTrucTiep = () => {
                                         {foundPatients.length > 0 ? (
                                             foundPatients.map(patient => (
                                                 <tr key={patient.id}>
-                                                    <td>{patient.hoTen}</td>
+                                                    <td>
+                                                        <div>
+                                                            <strong>{patient.fullName || patient.hoTen}</strong>
+                                                            {patient.relationship && (
+                                                                <div className="text-muted small">
+                                                                    Quan hệ: {patient.relationship}
+                                                                </div>
+                                                            )}
+                                                            <div className="text-muted small">
+                                                                {/* SĐT tài khoản: {patient.searchedPhone} */}
+                                                            </div>
+                                                        </div>
+                                                    </td>
                                                     <td>
                                                         <div className="action-buttons">
                                                             <button 
