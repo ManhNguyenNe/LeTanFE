@@ -90,7 +90,35 @@ const KhamTrucTiep = () => {
 
         } catch (error) {
             console.error('Error searching patient:', error);
-            setError('Có lỗi xảy ra khi tìm kiếm thông tin bệnh nhân. Vui lòng thử lại.');
+            
+            // Log chi tiết lỗi để debug
+            if (error.response) {
+                console.error('API Error Response:', error.response.data);
+                console.error('API Error Status:', error.response.status);
+                console.error('API Error Headers:', error.response.headers);
+            } else if (error.request) {
+                console.error('Network Error - No Response:', error.request);
+            } else {
+                console.error('Request Setup Error:', error.message);
+            }
+            
+            // Hiển thị lỗi chi tiết hơn
+            let errorMessage = 'Có lỗi xảy ra khi tìm kiếm thông tin bệnh nhân.';
+            if (error.response) {
+                if (error.response.status === 404) {
+                    errorMessage = 'Không tìm thấy API endpoint. Kiểm tra kết nối backend.';
+                } else if (error.response.status === 500) {
+                    errorMessage = 'Lỗi server backend. Vui lòng kiểm tra logs server.';
+                } else if (error.response.status === 400) {
+                    errorMessage = 'Yêu cầu không hợp lệ. Kiểm tra format số điện thoại.';
+                } else {
+                    errorMessage = `Lỗi API: ${error.response.status} - ${error.response.data?.message || 'Unknown error'}`;
+                }
+            } else if (error.request) {
+                errorMessage = 'Không thể kết nối đến server. Kiểm tra network và backend server.';
+            }
+            
+            setError(errorMessage);
             setFoundPatients([]);
             setApiAppointments([]);
             setSearchResult({ found: false, message: 'Có lỗi xảy ra khi tìm kiếm. Vui lòng thử lại.' });
@@ -129,13 +157,35 @@ const KhamTrucTiep = () => {
     };
 
     const handleEditPatient = (patient) => {
-        setSelectedPatientForModal(patient);
+        // Map dữ liệu từ API response sang modal
+        const mappedPatient = {
+            ...patient,
+            hoTen: patient.fullName || patient.hoTen,
+            soDienThoai: patient.phone || patient.soDienThoai,
+            email: patient.email || '',
+            ngaySinh: patient.birth || patient.ngaySinh,
+            gioiTinh: patient.gender || patient.gioiTinh, // Map gender từ API
+            diaChi: patient.address || patient.diaChi,
+            cccd: patient.cccd || ''
+        };
+        setSelectedPatientForModal(mappedPatient);
         setModalMode('edit');
         setShowPatientModal(true);
     };
 
     const handleViewPatient = (patient) => {
-        setSelectedPatientForModal(patient);
+        // Map dữ liệu từ API response sang modal
+        const mappedPatient = {
+            ...patient,
+            hoTen: patient.fullName || patient.hoTen,
+            soDienThoai: patient.phone || patient.soDienThoai,
+            email: patient.email || '',
+            ngaySinh: patient.birth || patient.ngaySinh,
+            gioiTinh: patient.gender || patient.gioiTinh, // Map gender từ API
+            diaChi: patient.address || patient.diaChi,
+            cccd: patient.cccd || ''
+        };
+        setSelectedPatientForModal(mappedPatient);
         setModalMode('view');
         setShowPatientModal(true);
     };
@@ -658,8 +708,8 @@ const KhamTrucTiep = () => {
                                     disabled={isFormFilled}
                                 >
                                     <option value="">Chọn giới tính</option>
-                                    <option value="Nam">Nam</option>
-                                    <option value="Nữ">Nữ</option>
+                                    <option value="NAM">Nam</option>
+                                    <option value="NU">Nữ</option>
                                 </select>
                             </div>
                             <div className="form-group">
@@ -817,8 +867,8 @@ const KhamTrucTiep = () => {
                                                     disabled={modalMode === 'view'}
                                                 >
                                                     <option value="">Chọn giới tính</option>
-                                                    <option value="Nam">Nam</option>
-                                                    <option value="Nữ">Nữ</option>
+                                                    <option value="NAM">Nam</option>
+                                                    <option value="NU">Nữ</option>
                                                 </select>
                                             </div>
                                             <div className="form-group">
