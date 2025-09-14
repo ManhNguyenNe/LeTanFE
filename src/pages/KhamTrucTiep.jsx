@@ -4,6 +4,7 @@ import './Letan.css';
 import appointmentService from '../services/appointmentService';
 import patientService from '../services/patientService';
 import departmentService from '../services/departmentService';
+import healthPlanService from '../services/healthPlanService';
 
 const KhamTrucTiep = () => {
     const [isNewPatient, setIsNewPatient] = useState(false);
@@ -16,8 +17,9 @@ const KhamTrucTiep = () => {
         diaChi: '',
         cccd: ''
     });
+    const [selectedOption, setSelectedOption] = useState(''); // Lưu option được chọn (department ID hoặc service type)
+    const [selectedOptionType, setSelectedOptionType] = useState(''); // Loại option: 'package', 'department', 'doctor'
     const [selectedDoctor, setSelectedDoctor] = useState('');
-    const [selectedDepartment, setSelectedDepartment] = useState('');
     const [searchResult, setSearchResult] = useState(null);
     const [searchedPhone, setSearchedPhone] = useState(null);
     const [foundPatients, setFoundPatients] = useState([]);
@@ -33,43 +35,92 @@ const KhamTrucTiep = () => {
     const [error, setError] = useState(null);
     const [doctors, setDoctors] = useState([]);
     const [departments, setDepartments] = useState([]);
+    const [healthPlans, setHealthPlans] = useState([]);
+    const [secondDropdownOptions, setSecondDropdownOptions] = useState([]);
     
     const [selectedAppointment, setSelectedAppointment] = useState(null);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [showCancelModal, setShowCancelModal] = useState(false);
 
-    // Load departments khi component mount
+    // Load departments và health plans khi component mount
     useEffect(() => {
-        const loadDepartments = async () => {
+        const loadInitialData = async () => {
             try {
-                const departments = await departmentService.getAllDepartments();
-                console.log('🏥 Departments loaded:', departments);
-                setDepartments(departments);
+                const [departmentsData, healthPlansData] = await Promise.all([
+                    departmentService.getAllDepartments(),
+                    healthPlanService.getAllHealthPlans()
+                ]);
+                
+                console.log('🏥 Departments loaded:', departmentsData);
+                console.log('📋 Health Plans loaded from API:', healthPlansData);
+                
+                setDepartments(departmentsData);
+                setHealthPlans(healthPlansData);
+                // setDoctors(doctorsData); // Tạm thời comment
             } catch (error) {
-                console.error('❌ Error loading departments:', error);
+                console.error('❌ Error loading initial data:', error);
             }
         };
         
-        loadDepartments();
+        loadInitialData();
     }, []);
 
-    // Load doctors khi department thay đổi
-    const handleDepartmentChange = async (e) => {
-        const departmentId = e.target.value;
-        setSelectedDepartment(departmentId);
-        setSelectedDoctor(''); // Reset bác sĩ đã chọn
+    // Xử lý thay đổi dropdown đầu tiên
+    const handleFirstDropdownChange = async (e) => {
+        const selectedValue = e.target.value;
+        setSelectedOption(selectedValue);
+        setSelectedDoctor(''); // Reset dropdown thứ 2
+        setSecondDropdownOptions([]);
         
-        if (departmentId) {
+        if (!selectedValue) {
+            setSelectedOptionType('');
+            return;
+        }
+
+        // Phân tích giá trị được chọn
+        if (selectedValue === 'PACKAGE') {
+            // Chọn "Gói khám" - hiển thị tất cả dịch vụ khám
+            setSelectedOptionType('package');
             try {
-                const doctors = await departmentService.getDoctorsByDepartment(departmentId);
-                console.log('👨‍⚕️ Doctors loaded for department:', departmentId, doctors);
-                setDoctors(doctors);
+                // Lấy tất cả dịch vụ từ API (không filter theo type vì API response có thể không có trường type)
+                setSecondDropdownOptions(healthPlans);
+                console.log('📦 Package services loaded:', healthPlans);
             } catch (error) {
-                console.error('❌ Error loading doctors:', error);
-                setDoctors([]);
+                console.error('❌ Error loading services:', error);
+            }
+        } else if (selectedValue === 'ALL_DOCTORS') {
+            // Chọn "Bác sĩ" - hiển thị tất cả bác sĩ
+            setSelectedOptionType('doctor');
+            try {
+                // Lấy tất cả bác sĩ từ tất cả khoa
+                let allDoctors = [];
+                for (const department of departments) {
+                    try {
+                        const doctors = await departmentService.getDoctorsByDepartment(department.id);
+                        allDoctors = [...allDoctors, ...doctors.map(doc => ({
+                            ...doc,
+                            departmentName: department.name
+                        }))];
+                    } catch (error) {
+                        console.error(`❌ Error loading doctors for department ${department.id}:`, error);
+                    }
+                }
+                setSecondDropdownOptions(allDoctors);
+                console.log('👨‍⚕️ All doctors loaded:', allDoctors);
+            } catch (error) {
+                console.error('❌ Error loading all doctors:', error);
             }
         } else {
-            setDoctors([]);
+            // Chọn chuyên khoa cụ thể - hiển thị bác sĩ trong khoa đó
+            setSelectedOptionType('department');
+            try {
+                const doctors = await departmentService.getDoctorsByDepartment(selectedValue);
+                setSecondDropdownOptions(doctors);
+                console.log('👨‍⚕️ Department doctors loaded:', doctors);
+            } catch (error) {
+                console.error('❌ Error loading department doctors:', error);
+                setSecondDropdownOptions([]);
+            }
         }
     };
 
@@ -357,8 +408,9 @@ const KhamTrucTiep = () => {
             cccd: ''
         });
         setSelectedDoctor('');
-        setSelectedDepartment('');
-        setDoctors([]);
+        setSelectedOption('');
+        setSelectedOptionType('');
+        setSecondDropdownOptions([]);
         setIsNewPatient(false);
         setSearchedPhone(null);
         setSearchResult(null);
@@ -378,21 +430,50 @@ const KhamTrucTiep = () => {
         e.preventDefault();
         
         // Kiểm tra thông tin đã đủ chưa
-        if (!selectedDepartment || !selectedDoctor) {
-            alert('Vui lòng chọn đầy đủ khoa và bác sĩ phụ trách!');
+        if (!selectedOption || !selectedDoctor) {
+            alert('Vui lòng chọn đầy đủ loại khám và dịch vụ/bác sĩ!');
             return;
         }
         
-        // Tìm thông tin department và doctor đã chọn
-        const selectedDeptInfo = departments.find(dept => dept.id == selectedDepartment);
-        const selectedDoctorInfo = doctors.find(doc => doc.id == selectedDoctor);
+        let selectedInfo = {};
+        
+        if (selectedOptionType === 'package') {
+            // Tìm thông tin gói dịch vụ đã chọn
+            const selectedService = healthPlans.find(plan => plan.id == selectedDoctor);
+            selectedInfo = {
+                type: 'Gói khám',
+                service: selectedService?.name || 'Dịch vụ không xác định',
+                price: selectedService?.price || 0
+            };
+        } else if (selectedOptionType === 'department') {
+            // Tìm thông tin khoa và bác sĩ đã chọn
+            const selectedDept = departments.find(dept => dept.id == selectedOption);
+            const selectedDoctorInfo = secondDropdownOptions.find(doc => doc.id == selectedDoctor);
+            selectedInfo = {
+                type: 'Chuyên khoa',
+                department: selectedDept?.name || 'Khoa không xác định',
+                doctor: selectedDoctorInfo?.position || 'Bác sĩ không xác định'
+            };
+        } else if (selectedOptionType === 'doctor') {
+            // Tìm thông tin bác sĩ đã chọn
+            const selectedDoctorInfo = secondDropdownOptions.find(doc => doc.id == selectedDoctor);
+            selectedInfo = {
+                type: 'Bác sĩ',
+                doctor: selectedDoctorInfo?.position || 'Bác sĩ không xác định',
+                department: selectedDoctorInfo?.departmentName || 'Khoa không xác định'
+            };
+        }
         
         console.log('📋 Phiếu khám được tạo với thông tin:');
         console.log('👤 Bệnh nhân:', patientInfo);
-        console.log('🏥 Khoa:', selectedDeptInfo);
-        console.log('👨‍⚕️ Bác sĩ:', selectedDoctorInfo);
+        console.log('🏥 Thông tin khám:', selectedInfo);
         
-        alert(`Đã in phiếu khám thành công!\nKhoa: ${selectedDeptInfo?.name}\nBác sĩ: ${selectedDoctorInfo?.position || 'Chưa có thông tin'}`);
+        let alertMessage = `Đã in phiếu khám thành công!\nLoại khám: ${selectedInfo.type}`;
+        if (selectedInfo.service) alertMessage += `\nDịch vụ: ${selectedInfo.service}`;
+        if (selectedInfo.department) alertMessage += `\nKhoa: ${selectedInfo.department}`;
+        if (selectedInfo.doctor) alertMessage += `\nBác sĩ: ${selectedInfo.doctor}`;
+        
+        alert(alertMessage);
     };
 
     return (
@@ -799,36 +880,63 @@ const KhamTrucTiep = () => {
 
                         <div className='form-row'>
                             <div className="form-group">
-                                <label>Khoa *</label>
+                                <label>Loại khám *</label>
                                 <select 
                                     required
-                                    value={selectedDepartment}
-                                    onChange={handleDepartmentChange}
-                                    // disabled={isFormFilled}
+                                    value={selectedOption}
+                                    onChange={handleFirstDropdownChange}
+                                    disabled={isFormFilled}
                                 >
-                                    <option value="">Chọn khoa</option>
-                                    {departments.map(department => (
-                                        <option key={department.id} value={department.id}>
-                                            {department.name}
-                                        </option>
-                                    ))}
+                                    <option value="">Chọn loại khám</option>
+                                    
+                                    {/* Heading 1: Gói khám */}
+                                    <optgroup label="━━━━━ GÓI KHÁM ━━━━━">
+                                        <option value="PACKAGE">Gói khám</option>
+                                    </optgroup>
+                                    
+                                    {/* Heading 1: Chuyên khoa */}
+                                    <optgroup label="━━━ CHUYÊN KHOA ━━━">
+                                        {departments.map(department => (
+                                            <option key={`dept-${department.id}`} value={department.id}>
+                                                {department.name}
+                                            </option>
+                                        ))}
+                                    </optgroup>
+                                    
+                                    {/* Heading 1: Bác sĩ */}
+                                    <optgroup label="━━━━━ BÁC SĨ ━━━━━">
+                                        <option value="ALL_DOCTORS">Tất cả bác sĩ</option>
+                                    </optgroup>
                                 </select>
                             </div>
                     
                             <div className="form-group">
-                                <label>Bác sĩ phụ trách *</label>
+                                <label>
+                                    {selectedOptionType === 'package' ? 'Dịch vụ khám *' : 
+                                     selectedOptionType === 'department' ? 'Bác sĩ trong khoa *' :
+                                     selectedOptionType === 'doctor' ? 'Chọn bác sĩ *' : 'Dịch vụ/Bác sĩ *'}
+                                </label>
                                 <select 
                                     required
                                     value={selectedDoctor}
                                     onChange={(e) => setSelectedDoctor(e.target.value)}
-                                    // disabled={isFormFilled || !selectedDepartment}
+                                    disabled={isFormFilled || !selectedOption}
                                 >
                                     <option value="">
-                                        {!selectedDepartment ? 'Vui lòng chọn khoa trước' : 'Chọn bác sĩ'}
+                                        {!selectedOption ? 'Vui lòng chọn loại khám trước' : 
+                                         selectedOptionType === 'package' ? 'Chọn dịch vụ khám' :
+                                         'Chọn bác sĩ'}
                                     </option>
-                                    {doctors.map(doctor => (
-                                        <option key={doctor.id} value={doctor.id}>
-                                            {doctor.position ? `${doctor.position}` : 'Bác sĩ'}
+                                    
+                                                    {selectedOptionType === 'package' && secondDropdownOptions.map(service => (
+                                        <option key={`service-${service.id}`} value={service.id}>
+                                            {service.name} {service.price ? `- ${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(service.price)}` : ''}
+                                        </option>
+                                    ))}
+                                    
+                                    {(selectedOptionType === 'department' || selectedOptionType === 'doctor') && secondDropdownOptions.map(doctor => (
+                                        <option key={`doctor-${doctor.id}`} value={doctor.id}>
+                                            {doctor.position || 'Bác sĩ'} {doctor.departmentName && `(${doctor.departmentName})`}
                                         </option>
                                     ))}
                                 </select>
