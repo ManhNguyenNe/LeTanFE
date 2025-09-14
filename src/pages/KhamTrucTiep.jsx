@@ -885,7 +885,7 @@ const KhamTrucTiep = () => {
                                     required
                                     value={selectedOption}
                                     onChange={handleFirstDropdownChange}
-                                    disabled={isFormFilled}
+                                    // disabled={isFormFilled}
                                 >
                                     <option value="">Chọn loại khám</option>
                                     
@@ -920,7 +920,8 @@ const KhamTrucTiep = () => {
                                     required
                                     value={selectedDoctor}
                                     onChange={(e) => setSelectedDoctor(e.target.value)}
-                                    disabled={isFormFilled || !selectedOption}
+                                    // disabled={isFormFilled || !selectedOption}
+                                    disabled={!selectedOption}
                                 >
                                     <option value="">
                                         {!selectedOption ? 'Vui lòng chọn loại khám trước' : 
