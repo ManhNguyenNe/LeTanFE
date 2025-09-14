@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import './Letan.css';
 import appointmentService from '../services/appointmentService';
 import patientService from '../services/patientService';
-// import doctorService from '../services/doctorService'; // Uncomment khi backend có API doctors
+import departmentService from '../services/departmentService';
 
 const KhamTrucTiep = () => {
     const [isNewPatient, setIsNewPatient] = useState(false);
@@ -17,6 +17,7 @@ const KhamTrucTiep = () => {
         cccd: ''
     });
     const [selectedDoctor, setSelectedDoctor] = useState('');
+    const [selectedDepartment, setSelectedDepartment] = useState('');
     const [searchResult, setSearchResult] = useState(null);
     const [searchedPhone, setSearchedPhone] = useState(null);
     const [foundPatients, setFoundPatients] = useState([]);
@@ -30,13 +31,47 @@ const KhamTrucTiep = () => {
     const [isLoadingAppointments, setIsLoadingAppointments] = useState(false);
     const [apiAppointments, setApiAppointments] = useState([]);
     const [error, setError] = useState(null);
-    const [doctors, setDoctors] = useState([]); // Sẽ lấy từ API doctors sau
+    const [doctors, setDoctors] = useState([]);
+    const [departments, setDepartments] = useState([]);
     
     const [selectedAppointment, setSelectedAppointment] = useState(null);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [showCancelModal, setShowCancelModal] = useState(false);
 
+    // Load departments khi component mount
+    useEffect(() => {
+        const loadDepartments = async () => {
+            try {
+                const departments = await departmentService.getAllDepartments();
+                console.log('🏥 Departments loaded:', departments);
+                setDepartments(departments);
+            } catch (error) {
+                console.error('❌ Error loading departments:', error);
+            }
+        };
+        
+        loadDepartments();
+    }, []);
 
+    // Load doctors khi department thay đổi
+    const handleDepartmentChange = async (e) => {
+        const departmentId = e.target.value;
+        setSelectedDepartment(departmentId);
+        setSelectedDoctor(''); // Reset bác sĩ đã chọn
+        
+        if (departmentId) {
+            try {
+                const doctors = await departmentService.getDoctorsByDepartment(departmentId);
+                console.log('👨‍⚕️ Doctors loaded for department:', departmentId, doctors);
+                setDoctors(doctors);
+            } catch (error) {
+                console.error('❌ Error loading doctors:', error);
+                setDoctors([]);
+            }
+        } else {
+            setDoctors([]);
+        }
+    };
 
     const handleSearchPatient = async () => {
         if (!patientInfo.soDienThoai || patientInfo.soDienThoai.trim() === '') {
@@ -322,6 +357,8 @@ const KhamTrucTiep = () => {
             cccd: ''
         });
         setSelectedDoctor('');
+        setSelectedDepartment('');
+        setDoctors([]);
         setIsNewPatient(false);
         setSearchedPhone(null);
         setSearchResult(null);
@@ -339,7 +376,23 @@ const KhamTrucTiep = () => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        alert('Đã in phiếu khám thành công!');
+        
+        // Kiểm tra thông tin đã đủ chưa
+        if (!selectedDepartment || !selectedDoctor) {
+            alert('Vui lòng chọn đầy đủ khoa và bác sĩ phụ trách!');
+            return;
+        }
+        
+        // Tìm thông tin department và doctor đã chọn
+        const selectedDeptInfo = departments.find(dept => dept.id == selectedDepartment);
+        const selectedDoctorInfo = doctors.find(doc => doc.id == selectedDoctor);
+        
+        console.log('📋 Phiếu khám được tạo với thông tin:');
+        console.log('👤 Bệnh nhân:', patientInfo);
+        console.log('🏥 Khoa:', selectedDeptInfo);
+        console.log('👨‍⚕️ Bác sĩ:', selectedDoctorInfo);
+        
+        alert(`Đã in phiếu khám thành công!\nKhoa: ${selectedDeptInfo?.name}\nBác sĩ: ${selectedDoctorInfo?.position || 'Chưa có thông tin'}`);
     };
 
     return (
@@ -749,8 +802,16 @@ const KhamTrucTiep = () => {
                                 <label>Khoa *</label>
                                 <select 
                                     required
+                                    value={selectedDepartment}
+                                    onChange={handleDepartmentChange}
+                                    // disabled={isFormFilled}
                                 >
                                     <option value="">Chọn khoa</option>
+                                    {departments.map(department => (
+                                        <option key={department.id} value={department.id}>
+                                            {department.name}
+                                        </option>
+                                    ))}
                                 </select>
                             </div>
                     
@@ -760,11 +821,14 @@ const KhamTrucTiep = () => {
                                     required
                                     value={selectedDoctor}
                                     onChange={(e) => setSelectedDoctor(e.target.value)}
+                                    // disabled={isFormFilled || !selectedDepartment}
                                 >
-                                    <option value="">Chọn bác sĩ</option>
+                                    <option value="">
+                                        {!selectedDepartment ? 'Vui lòng chọn khoa trước' : 'Chọn bác sĩ'}
+                                    </option>
                                     {doctors.map(doctor => (
                                         <option key={doctor.id} value={doctor.id}>
-                                            {doctor.name} - {doctor.specialty}
+                                            {doctor.position ? `${doctor.position}` : 'Bác sĩ'}
                                         </option>
                                     ))}
                                 </select>
