@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import './Letan.css';
 import appointmentService from '../services/appointmentService';
 import patientService from '../services/patientService';
@@ -7,7 +6,7 @@ import departmentService from '../services/departmentService';
 import healthPlanService from '../services/healthPlanService';
 
 const KhamTrucTiep = () => {
-    const [isNewPatient, setIsNewPatient] = useState(false);
+    const [isNewPatient, setIsNewPatient] = useState(false); // eslint-disable-line no-unused-vars
     const [patientInfo, setPatientInfo] = useState({
         hoTen: '',
         soDienThoai: '',
@@ -33,7 +32,6 @@ const KhamTrucTiep = () => {
     const [isLoadingAppointments, setIsLoadingAppointments] = useState(false);
     const [apiAppointments, setApiAppointments] = useState([]);
     const [error, setError] = useState(null);
-    const [doctors, setDoctors] = useState([]);
     const [departments, setDepartments] = useState([]);
     const [healthPlans, setHealthPlans] = useState([]);
     const [secondDropdownOptions, setSecondDropdownOptions] = useState([]);
@@ -439,7 +437,7 @@ const KhamTrucTiep = () => {
         
         if (selectedOptionType === 'package') {
             // Tìm thông tin gói dịch vụ đã chọn
-            const selectedService = healthPlans.find(plan => plan.id == selectedDoctor);
+            const selectedService = healthPlans.find(plan => plan.id === selectedDoctor);
             selectedInfo = {
                 type: 'Gói khám',
                 service: selectedService?.name || 'Dịch vụ không xác định',
@@ -447,8 +445,8 @@ const KhamTrucTiep = () => {
             };
         } else if (selectedOptionType === 'department') {
             // Tìm thông tin khoa và bác sĩ đã chọn
-            const selectedDept = departments.find(dept => dept.id == selectedOption);
-            const selectedDoctorInfo = secondDropdownOptions.find(doc => doc.id == selectedDoctor);
+            const selectedDept = departments.find(dept => dept.id === selectedOption);
+            const selectedDoctorInfo = secondDropdownOptions.find(doc => doc.id === selectedDoctor);
             selectedInfo = {
                 type: 'Chuyên khoa',
                 department: selectedDept?.name || 'Khoa không xác định',
@@ -456,7 +454,7 @@ const KhamTrucTiep = () => {
             };
         } else if (selectedOptionType === 'doctor') {
             // Tìm thông tin bác sĩ đã chọn
-            const selectedDoctorInfo = secondDropdownOptions.find(doc => doc.id == selectedDoctor);
+            const selectedDoctorInfo = secondDropdownOptions.find(doc => doc.id === selectedDoctor);
             selectedInfo = {
                 type: 'Bác sĩ',
                 doctor: selectedDoctorInfo?.position || 'Bác sĩ không xác định',
@@ -496,10 +494,6 @@ const KhamTrucTiep = () => {
                         <i className="fas fa-user-plus"></i>
                         Tạo phiếu khám
                     </button>
-                    <Link to="/letan/xac-nhan-dat-lich" className="nav-btn">
-                        <i className="fas fa-calendar-check"></i>
-                        Xác nhận đặt lịch
-                    </Link>
                 </div>
             </div>
 

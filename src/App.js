@@ -4,7 +4,6 @@ import './App.css';
 
 // Import các trang
 import KhamTrucTiep from './pages/KhamTrucTiep';
-import XacNhanDatLich from './pages/XacNhanDatLich';
 
 function App() {
   return (
@@ -13,7 +12,6 @@ function App() {
         <Routes>
           <Route path="/" element={<KhamTrucTiep />} />
           <Route path="/letan" element={<KhamTrucTiep />} />
-          <Route path="/letan/xac-nhan-dat-lich" element={<XacNhanDatLich />} />
         </Routes>
       </div>
     </Router>
