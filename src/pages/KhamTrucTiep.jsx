@@ -640,7 +640,7 @@ const KhamTrucTiep = () => {
                                                     <tr key={appointment.id}>
                                                         <td>{appointment.fullName || 'N/A'}</td>
                                                         <td>{appointment.phone || 'N/A'}</td>
-                                                        <td>{appointment.doctorResponse?.fullName || 'Chưa phân công'}</td>
+                                                        <td>{appointment.doctorResponse?.position || 'Chưa phân công'}</td>
                                                         <td>{formatTime(appointment.time)}</td>
                                                         <td>{formatDate(appointment.date)}</td>
                                                         <td>
@@ -1113,7 +1113,7 @@ const KhamTrucTiep = () => {
                                         <p><strong>Email:</strong> {selectedAppointment.email || 'N/A'}</p>
                                         <p><strong>Ngày sinh:</strong> {selectedAppointment.birth || 'N/A'}</p>
                                         <p><strong>Địa chỉ:</strong> {selectedAppointment.address || 'N/A'}</p>
-                                        <p><strong>Bác sĩ:</strong> {selectedAppointment.doctorResponse?.fullName || 'Chưa phân công'}</p>
+                                        <p><strong>Bác sĩ:</strong> {selectedAppointment.doctorResponse?.position || 'Chưa phân công'}</p>
                                         <p><strong>Ngày khám:</strong> {selectedAppointment.date || 'N/A'}</p>
                                         <p><strong>Giờ khám:</strong> {selectedAppointment.time ? selectedAppointment.time.substring(0, 5) : 'N/A'}</p>
                                         <p><strong>Triệu chứng:</strong> {selectedAppointment.symptoms || 'Không có'}</p>
