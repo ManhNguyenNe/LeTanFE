@@ -7,7 +7,7 @@ const patientService = {
   /**
    * Lấy thông tin bệnh nhân theo số điện thoại
    * @param {string} phone - Số điện thoại cần tìm kiếm
-   * @returns {Promise} Response từ API
+   * @returns {Promise} Response từ API với cấu trúc mới: {patients: Array, ownerId: Number}
    */
   getPatientsByPhone: async (phone) => {
     try {
@@ -20,6 +20,19 @@ const patientService = {
           phone: phone.trim()
         }
       });
+
+      // API mới trả về cấu trúc PatientsDto: {patients: Array, ownerId: Number}
+      // Cần xử lý để tương thích với code cũ
+      const responseData = response.data;
+      
+      if (responseData && responseData.data) {
+        const { patients = [], ownerId = null } = responseData.data;
+        return {
+          ...responseData,
+          data: patients, // Để tương thích với code cũ expect data là array
+          ownerId: ownerId // Thêm ownerId cho các use case mới
+        };
+      }
 
       return response.data;
     } catch (error) {

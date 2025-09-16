@@ -7,8 +7,26 @@ Tích hợp API `/api/appointments/phone?phone={phone}` từ backend phongkham-b
 
 ### 1. Tra cứu Bệnh nhân và Lịch khám
 - **API sử dụng**: 
-  - `GET /api/patients?phone={phone}` - Tìm thông tin bệnh nhân
+  - `GET /api/patients?phone={phone}` - Tìm thông tin bệnh nhân (Cấu trúc mới: PatientsDto với relationship)
   - `GET /api/appointments/phone?phone={phone}` - Tìm lịch khám theo SĐT
+
+#### Cấu trúc API Response mới cho `/api/patients`:
+```json
+{
+  "data": {
+    "patients": [
+      {
+        "id": "string",
+        "fullName": "string", 
+        "relationship": "string", // Mới: mối quan hệ với chủ SĐT
+        "phone": "string",
+        ...
+      }
+    ],
+    "ownerId": "number" // Mới: ID chủ sở hữu SĐT
+  }
+}
+```
 
 ### 2. Quản lý Lịch khám
 - **API sử dụng**: 
@@ -49,11 +67,13 @@ Dự án đã có sẵn `axios` trong package.json.
 1. Nhập số điện thoại trong ô tìm kiếm
 2. Nhấn nút "Tìm kiếm"
 3. Hệ thống sẽ gọi API để tìm:
-   - Thông tin bệnh nhân
+   - Thông tin bệnh nhân với mối quan hệ (relationship)
    - Lịch khám đã đặt
 4. Kết quả hiển thị trong hai phần:
-   - Danh sách bệnh nhân tìm được
+   - Danh sách bệnh nhân tìm được (có hiển thị mối quan hệ)
    - Danh sách lịch khám của số điện thoại
+
+**Tính năng mới**: Hiển thị mối quan hệ giữa các bệnh nhân với chủ sở hữu số điện thoại
 
 ### 2. Xác nhận lịch khám
 1. Trong danh sách lịch khám, nhấn "Xác nhận" hoặc "Hủy"

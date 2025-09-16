@@ -145,20 +145,37 @@ const KhamTrucTiep = () => {
             console.log('🔍 Patients API Response:', patientsResponse);
             console.log('📅 Appointments API Response:', appointmentsResponse);
 
-            // Xử lý dữ liệu bệnh nhân - giữ nguyên thông tin từ API
+            // Xử lý dữ liệu bệnh nhân - API mới có cấu trúc PatientsDto với relationship
             const foundPatientsData = (patientsResponse?.data || []).map(patient => ({
                 ...patient,
-                // Chỉ thêm số điện thoại search nếu patient không có số riêng
-                searchedPhone: patientInfo.soDienThoai.trim()
+                // Thêm số điện thoại search
+                searchedPhone: patientInfo.soDienThoai.trim(),
+                // Hiển thị thông tin mối quan hệ nếu có
+                relationshipDisplay: patient.relationship ? `(${patient.relationship})` : ''
             }));
+            
+            // Lưu ownerId để sử dụng sau này (người sở hữu số điện thoại)
+            const ownerId = patientsResponse?.ownerId;
             
             if (foundPatientsData.length > 0) {
                 setFoundPatients(foundPatientsData);
                 setIsNewPatient(false);
                 setSearchedPhone(patientInfo.soDienThoai);
+                
+                // Tạo message hiển thị với thông tin về các mối quan hệ
+                const relationshipInfo = foundPatientsData
+                    .filter(p => p.relationship)
+                    .map(p => `${p.fullName} (${p.relationship})`)
+                    .join(', ');
+                
+                const message = relationshipInfo 
+                    ? `Tìm thấy ${foundPatientsData.length} hồ sơ bệnh nhân: ${relationshipInfo}` 
+                    : `Tìm thấy ${foundPatientsData.length} hồ sơ bệnh nhân với số điện thoại ${patientInfo.soDienThoai}`;
+                
                 setSearchResult({ 
                     found: true, 
-                    message: `Tìm thấy ${foundPatientsData.length} hồ sơ bệnh nhân với số điện thoại ${patientInfo.soDienThoai}` 
+                    message: message,
+                    ownerId: ownerId // Lưu thêm ownerId
                 });
             } else {
                 setFoundPatients([]);
@@ -715,11 +732,11 @@ const KhamTrucTiep = () => {
                                                             <strong>{patient.fullName || patient.hoTen}</strong>
                                                             {patient.relationship && (
                                                                 <div className="text-muted small">
-                                                                    Quan hệ: {patient.relationship}
+                                                                    Quan hệ: <span className="badge badge-info">{patient.relationship}</span>
                                                                 </div>
                                                             )}
                                                             <div className="text-muted small">
-                                                                {/* SĐT tài khoản: {patient.searchedPhone} */}
+                                                                SĐT: {patient.searchedPhone}
                                                             </div>
                                                         </div>
                                                     </td>
