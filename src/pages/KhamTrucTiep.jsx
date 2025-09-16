@@ -4,6 +4,7 @@ import appointmentService from '../services/appointmentService';
 import patientService from '../services/patientService';
 import departmentService from '../services/departmentService';
 import healthPlanService from '../services/healthPlanService';
+import medicalRecordService from '../services/medicalRecordService';
 
 const KhamTrucTiep = () => {
     const [isNewPatient, setIsNewPatient] = useState(false); // eslint-disable-line no-unused-vars
@@ -378,8 +379,14 @@ const KhamTrucTiep = () => {
                     : apt
             ));
 
+            // Tạo hoặc tìm thông tin bệnh nhân và tạo medical record
+            await createMedicalRecordFromAppointment(selectedAppointment);
+
+            // Tự động điền thông tin vào Phiếu khám bệnh
+            fillAppointmentToExaminationForm(selectedAppointment);
+
             setShowConfirmModal(false);
-            alert('Đã xác nhận lịch hẹn thành công!');
+            alert('Đã xác nhận lịch hẹn thành công và tạo phiếu khám bệnh!');
             
             // Refresh danh sách lịch khám
             await refreshAppointments();
@@ -440,6 +447,142 @@ const KhamTrucTiep = () => {
         }
         return true;
     });
+
+    // Hàm tạo medical record từ appointment đã xác nhận
+    const createMedicalRecordFromAppointment = async (appointment) => {
+        try {
+            // Tìm hoặc tạo bệnh nhân
+            let patientId = null;
+            
+            // Tìm bệnh nhân theo số điện thoại
+            try {
+                const existingPatientsResponse = await patientService.getPatientsByPhone(appointment.phone);
+                const existingPatients = existingPatientsResponse.data;
+                
+                if (existingPatients && existingPatients.length > 0) {
+                    patientId = existingPatients[0].id;
+                    console.log('📋 Tìm thấy bệnh nhân:', existingPatients[0]);
+                } else {
+                    // Tạo bệnh nhân mới nếu chưa có
+                    const patientData = {
+                        fullName: appointment.fullName,
+                        phone: appointment.phone,
+                        email: appointment.email,
+                        birth: appointment.birth,
+                        gender: appointment.gender,
+                        address: appointment.address,
+                        cccd: null // Có thể thêm sau
+                    };
+                    
+                    const newPatientResponse = await patientService.createPatient(patientData);
+                    patientId = newPatientResponse.data.id;
+                    console.log('👤 Tạo bệnh nhân mới:', newPatientResponse.data);
+                }
+            } catch (patientError) {
+                console.error('Error handling patient:', patientError);
+                throw new Error('Không thể tạo hoặc tìm thông tin bệnh nhân');
+            }
+
+            // Tạo medical record
+            const medicalRecordData = {
+                patientId: patientId,
+                healthPlanId: appointment.healthPlanResponse?.id || null,
+                doctorId: appointment.doctorResponse?.id || null,
+                symptoms: appointment.symptoms || 'Đặt lịch online - chưa có triệu chứng cụ thể'
+            };
+
+            const medicalRecord = await medicalRecordService.createMedicalRecord(medicalRecordData);
+            console.log('📋 Tạo phiếu khám bệnh thành công:', medicalRecord);
+            
+            return medicalRecord;
+        } catch (error) {
+            console.error('Error creating medical record from appointment:', error);
+            throw error;
+        }
+    };
+
+    // Hàm điền thông tin từ lịch hẹn vào form phiếu khám bệnh
+    const fillAppointmentToExaminationForm = (appointment) => {
+        // Điền thông tin bệnh nhân từ appointment
+        setPatientInfo({
+            hoTen: appointment.fullName || '',
+            soDienThoai: appointment.phone || '',
+            email: appointment.email || '',
+            ngaySinh: appointment.birth || '',
+            gioiTinh: appointment.gender || '',
+            diaChi: appointment.address || '',
+            cccd: ''
+        });
+
+        // Xử lý thông tin dịch vụ khám/bác sĩ
+        if (appointment.healthPlanResponse) {
+            // Trường hợp đặt theo gói dịch vụ
+            setSelectedOptionType('package');
+            setSelectedOption('PACKAGE');
+            setSecondDropdownOptions(healthPlans);
+            setSelectedDoctor(appointment.healthPlanResponse.id.toString());
+        } else if (appointment.doctorResponse) {
+            // Trường hợp đặt theo bác sĩ
+            setSelectedOptionType('doctor');
+            setSelectedOption('ALL_DOCTORS');
+            
+            // Load tất cả bác sĩ từ tất cả khoa
+            const loadAllDoctors = async () => {
+                try {
+                    let allDoctors = [];
+                    for (const department of departments) {
+                        try {
+                            const doctors = await departmentService.getDoctorsByDepartment(department.id);
+                            allDoctors = [...allDoctors, ...doctors.map(doc => ({
+                                ...doc,
+                                departmentName: department.name
+                            }))];
+                        } catch (error) {
+                            console.error(`❌ Error loading doctors for department ${department.id}:`, error);
+                        }
+                    }
+                    setSecondDropdownOptions(allDoctors);
+                    setSelectedDoctor(appointment.doctorResponse.id.toString());
+                } catch (error) {
+                    console.error('❌ Error loading all doctors:', error);
+                }
+            };
+            
+            loadAllDoctors();
+        } else if (appointment.departmentId) {
+            // Trường hợp đặt theo khoa
+            setSelectedOptionType('department');
+            setSelectedOption(appointment.departmentId.toString());
+            
+            // Load bác sĩ của khoa này
+            const loadDepartmentDoctors = async () => {
+                try {
+                    const doctors = await departmentService.getDoctorsByDepartment(appointment.departmentId);
+                    setSecondDropdownOptions(doctors);
+                } catch (error) {
+                    console.error('❌ Error loading department doctors:', error);
+                    setSecondDropdownOptions([]);
+                }
+            };
+            
+            loadDepartmentDoctors();
+        }
+
+        // Scroll xuống phần phiếu khám bệnh
+        setTimeout(() => {
+            const examinationSection = document.querySelector('.search-patient-section');
+            if (examinationSection) {
+                examinationSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, 500);
+
+        console.log('✅ Đã điền thông tin từ lịch hẹn vào phiếu khám bệnh:', {
+            patient: appointment.fullName,
+            phone: appointment.phone,
+            service: appointment.healthPlanResponse?.name || 'N/A',
+            doctor: appointment.doctorResponse?.position || 'N/A'
+        });
+    };
 
     const handleSubmit = (e) => {
         e.preventDefault();
