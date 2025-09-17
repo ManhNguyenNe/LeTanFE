@@ -372,10 +372,10 @@ const KhamTrucTiep = () => {
             // Gọi API để xác nhận lịch khám - sử dụng enum status
             await appointmentService.confirmAppointment(selectedAppointment.id, 'DA_XAC_NHAN');
             
-            // Cập nhật danh sách API appointments
+            // Cập nhật danh sách API appointments với localStatus
             setApiAppointments(apiAppointments.map(apt => 
                 apt.id === selectedAppointment.id 
-                    ? { ...apt, status: 'DA_XAC_NHAN' }
+                    ? { ...apt, localStatus: 'DA_XAC_NHAN' }
                     : apt
             ));
 
@@ -388,7 +388,7 @@ const KhamTrucTiep = () => {
             setShowConfirmModal(false);
             alert('Đã xác nhận lịch hẹn thành công và tạo phiếu khám bệnh!');
             
-            // Refresh danh sách lịch khám
+            // Refresh danh sách lịch khám (sẽ loại bỏ appointment này khỏi danh sách vì backend chỉ trả về CHO_XAC_NHAN)
             await refreshAppointments();
         } catch (error) {
             console.error('Error confirming appointment:', error);
@@ -401,17 +401,17 @@ const KhamTrucTiep = () => {
             // Gọi API để hủy lịch khám - sử dụng enum status  
             await appointmentService.confirmAppointment(selectedAppointment.id, 'KHONG_DEN');
             
-            // Cập nhật danh sách API appointments
+            // Cập nhật danh sách API appointments với localStatus
             setApiAppointments(apiAppointments.map(apt => 
                 apt.id === selectedAppointment.id 
-                    ? { ...apt, status: 'KHONG_DEN' }
+                    ? { ...apt, localStatus: 'KHONG_DEN' }
                     : apt
             ));
 
             setShowCancelModal(false);
             alert('Đã hủy lịch hẹn!');
             
-            // Refresh danh sách lịch khám
+            // Refresh danh sách lịch khám (sẽ loại bỏ appointment này khỏi danh sách vì backend chỉ trả về CHO_XAC_NHAN)
             await refreshAppointments();
         } catch (error) {
             console.error('Error canceling appointment:', error);
@@ -440,10 +440,10 @@ const KhamTrucTiep = () => {
         setIsFormFilled(false); // Reset trạng thái form
     };
 
-    // Chỉ sử dụng dữ liệu từ API
+    // Chỉ sử dụng dữ liệu từ API - dùng trường phone từ AppointmentResponse
     const filteredAppointments = apiAppointments.filter(apt => {
         if (searchedPhone) {
-            return apt.soDienThoai === searchedPhone || apt.phone === searchedPhone;
+            return apt.phone === searchedPhone;
         }
         return true;
     });
@@ -726,6 +726,16 @@ const KhamTrucTiep = () => {
                         <div className="appointments-list">
                             <div className="appointments-header">
                                 <h2>Danh sách lịch đặt online</h2>
+                                {searchedPhone && (
+                                    <button 
+                                        className="btn-refresh"
+                                        onClick={refreshAppointments}
+                                        title="Làm mới danh sách"
+                                    >
+                                        <i className="fas fa-sync-alt"></i>
+                                        Làm mới
+                                    </button>
+                                )}
                             </div>
                             
                             <div className="appointments-table">
@@ -734,6 +744,7 @@ const KhamTrucTiep = () => {
                                         <tr>
                                             <th>Họ tên</th>
                                             <th>Số điện thoại</th>
+                                            <th>Dịch vụ</th>
                                             <th>Bác sĩ</th>
                                             <th>Khung giờ</th>
                                             <th>Ngày khám</th>
@@ -744,25 +755,29 @@ const KhamTrucTiep = () => {
                                     <tbody>
                                         {isLoadingAppointments ? (
                                             <tr>
-                                                <td colSpan="7" style={{ textAlign: 'center', padding: '2rem' }}>
+                                                <td colSpan="8" style={{ textAlign: 'center', padding: '2rem' }}>
                                                     <i className="fas fa-spinner fa-spin" style={{ marginRight: '0.5rem' }}></i>
                                                     Đang tải danh sách lịch khám...
                                                 </td>
                                             </tr>
                                         ) : filteredAppointments.length > 0 ? (
                                             filteredAppointments.map(appointment => {
-                                                // Chuyển đổi status từ backend sang tiếng Việt
-                                                const getVietnameseStatus = (status) => {
-                                                    switch(status) {
-                                                        case 'CHO_XAC_NHAN':
-                                                            return 'Chờ xác nhận';
-                                                        case 'DA_XAC_NHAN':
-                                                            return 'Đã xác nhận';
-                                                        case 'KHONG_DEN':
-                                                            return 'Đã hủy';
-                                                        default:
-                                                            return status || 'Chờ xác nhận';
+                                                // Vì backend chỉ trả về appointments có status CHO_XAC_NHAN
+                                                // nên tất cả appointments từ API đều có status "Chờ xác nhận"
+                                                const getVietnameseStatus = (appointment) => {
+                                                    // Kiểm tra nếu appointment đã được xác nhận local (sau khi click button)
+                                                    if (appointment.localStatus) {
+                                                        switch(appointment.localStatus) {
+                                                            case 'DA_XAC_NHAN':
+                                                                return 'Đã xác nhận';
+                                                            case 'KHONG_DEN':
+                                                                return 'Đã hủy';
+                                                            default:
+                                                                return 'Chờ xác nhận';
+                                                        }
                                                     }
+                                                    // Mặc định là chờ xác nhận vì backend chỉ trả về loại này
+                                                    return 'Chờ xác nhận';
                                                 };
 
                                                 // Format thời gian hiển thị
@@ -788,12 +803,17 @@ const KhamTrucTiep = () => {
                                                     return date.toString();
                                                 };
 
-                                                const vietnameseStatus = getVietnameseStatus(appointment.status);
+                                                const vietnameseStatus = getVietnameseStatus(appointment);
 
                                                 return (
                                                     <tr key={appointment.id}>
                                                         <td>{appointment.fullName || 'N/A'}</td>
                                                         <td>{appointment.phone || 'N/A'}</td>
+                                                        <td>
+                                                            {appointment.healthPlanResponse?.name || 
+                                                             appointment.departmentResponse?.name || 
+                                                             'Chưa xác định'}
+                                                        </td>
                                                         <td>{appointment.doctorResponse?.position || 'Chưa phân công'}</td>
                                                         <td>{formatTime(appointment.time)}</td>
                                                         <td>{formatDate(appointment.date)}</td>
@@ -830,7 +850,7 @@ const KhamTrucTiep = () => {
                                             })
                                         ) : (
                                             <tr>
-                                                <td colSpan="7" style={{ textAlign: 'center', color: '#6c757d', fontStyle: 'italic', padding: '2rem' }}>
+                                                <td colSpan="8" style={{ textAlign: 'center', color: '#6c757d', fontStyle: 'italic', padding: '2rem' }}>
                                                     {searchedPhone ? 'Không tìm thấy lịch khám nào cho số điện thoại này' : 'Nhập số điện thoại để tìm kiếm lịch khám'}
                                                 </td>
                                             </tr>

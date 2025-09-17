@@ -51,7 +51,7 @@ const appointmentService = {
    */
   confirmAppointment: async (appointmentId, status) => {
     try {
-      const response = await apiClient.post('/api/receptionists/confirm', {
+      const response = await apiClient.put('/api/appointments/confirm', {
         id: appointmentId,
         status: status // Sử dụng enum string như backend mong đợi
       });
